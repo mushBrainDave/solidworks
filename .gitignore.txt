@@ -1,7 +1,0 @@
-# Ignore build artifacts everywhere
-**/bin/
-**/obj/
-bin/
-obj/
-# Ignore Visual Studio working folder
-.vs/

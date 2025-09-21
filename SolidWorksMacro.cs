@@ -16,14 +16,11 @@ namespace Macro2
     {
         public SldWorks swApp;
         private const string BASE_LENGTH = "150mm";
-        private const string BASE_HEIGHT = "150mm";
+        private const string BASE_HEIGHT = "140mm";
         public void Main()
         {
             swApp = (SldWorks)Marshal.GetActiveObject("SldWorks.Application");
             swApp.SendMsgToUser("Macro started successfully.");
-            // Suppress the "Modify" dialog while creating the dimension
-            bool prevInputOnCreate = swApp.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
-            swApp.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
 
             // Optional: reduces other UI popups while running API code
             bool prevCmdInProgress = swApp.CommandInProgress;
@@ -33,7 +30,7 @@ namespace Macro2
             AddOrUpdateGlobalVariable("BaseLength", BASE_LENGTH);
             AddOrUpdateGlobalVariable("BaseHeight", BASE_HEIGHT);
             AddOrUpdateConfiguration("pla");
-            //CreateCenterRectangleSketch();
+            CreateCenterRectangleSketch();
 
             swApp.SendMsgToUser("Macro completed successfully.");
             return;
@@ -166,16 +163,13 @@ namespace Macro2
                 }
             }
 
-            // Insert a new sketch
             model.SketchManager.InsertSketch(true);
 
-            // Create a center point rectangle
-            double halfSize = 0.075; // Initial size in meters (75mm half-size = 150mm full)
+            double halfSize = 0.075;
 
-            // Create the center point rectangle
-            object rect = model.SketchManager.CreateCenterRectangle(0, 0, 0, halfSize, halfSize, 0);
+            // don't make it a square unless that's what you want
+            object rect = model.SketchManager.CreateCenterRectangle(0, 0, 0, halfSize, .080, 0);
 
-            // Clear selection
             model.ClearSelection2(true);
 
             // Get all sketch segments
@@ -199,19 +193,16 @@ namespace Macro2
                 {
                     Dimension dim = (Dimension)dimWidth.GetDimension();
                     string dimName = dim.FullName;
-
-                    // Link to BaseLength global variable
+                    swApp.SendMsgToUser($"dim {dim.Name} @Sketch1");
                     string equation = "\"" + dimName + "\" = \"BaseLength\"";
                     model.GetEquationMgr().Add2(-1, equation, true);
-                    model.EditRebuild3();
                 }
 
-                // Clear selection before selecting next line
                 model.ClearSelection2(true);
 
                 // Select second line (should be vertical) for height
                 SketchSegment line2 = (SketchSegment)sketchSegments[1];
-                if (!line2.Select4(false, null))  // Fixed: Check line2, not line1
+                if (!line2.Select4(false, null))
                 {
                     swApp.SendMsgToUser("Could not select line2");
                     return;
@@ -223,12 +214,10 @@ namespace Macro2
                 if (dimHeight != null)
                 {
                     Dimension dim = (Dimension)dimHeight.GetDimension();
+                    swApp.SendMsgToUser(dim.FullName);
                     string dimName = dim.FullName;
-
-                    // Link to BaseHeight global variable (different from BaseLength)
                     string equation = "\"" + dimName + "\" = \"BaseHeight\"";
                     model.GetEquationMgr().Add2(-1, equation, true);
-                    model.EditRebuild3();
                 }
             }
             else
